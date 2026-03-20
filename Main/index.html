@@ -2,229 +2,265 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CYBER_WAR_V12_THE_SYNDICATE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER_WAR_V14_ULTIMATE</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        :root { --g: #00ff41; --b: #00d2ff; --r: #ff0055; --y: #ffff00; --p: #bc00ff; --w: #ffffff; --dark: #0a0a0a; }
+        :root { --g: #00ff41; --b: #00d2ff; --r: #ff0055; --y: #ffff00; --p: #bc00ff; --w: #ffffff; }
         body { background: #000; color: var(--g); font-family: 'Consolas', monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        .header { display: flex; flex-wrap: wrap; background: #111; padding: 8px; border-bottom: 2px solid #333; font-size: 11px; justify-content: space-around; }
-        #terminal { flex: 1; padding: 15px; overflow-y: auto; background: black; border: 1px solid #222; }
-        .input-line { display: flex; background: #050505; padding: 15px; border-top: 1px solid #333; }
-        input { background: transparent; border: none; color: var(--w); flex: 1; outline: none; font-size: 16px; }
+        /* UI Elements */
+        .header { display: flex; flex-wrap: wrap; background: #111; padding: 10px; border-bottom: 2px solid #333; font-size: 12px; justify-content: space-around; gap: 10px; }
+        #terminal { flex: 1; padding: 15px; overflow-y: auto; background: black; line-height: 1.5; }
+        .input-line { display: flex; background: #0a0a0a; padding: 15px; border-top: 1px solid #333; align-items: center; }
+        input { background: transparent; border: none; color: #fff; flex: 1; outline: none; font-size: 16px; font-family: inherit; }
 
+        /* Overlays */
         .overlay { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .hidden { display: none !important; }
-        .btn { padding: 12px 24px; margin: 8px; cursor: pointer; border: 1px solid; background: transparent; color: inherit; font-family: inherit; }
-        
-        .m-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; background: var(--dark); border-top: 1px solid #333; }
-        .m-btn { background: #1a1a1a; color: #888; border: 1px solid #444; padding: 10px 2px; font-size: 9px; text-align: center; cursor: pointer; border-radius: 4px; }
-        
-        .c-h { color: var(--r); } .c-p { color: var(--b); } .c-y { color: var(--y); } .c-sys { color: #666; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
-        th, td { border: 1px solid #333; padding: 5px; text-align: left; }
+        .auth-box { border: 1px solid var(--g); padding: 30px; width: 320px; box-shadow: 0 0 20px rgba(0,255,65,0.2); }
+        .btn { padding: 10px 20px; margin: 10px; cursor: pointer; border: 1px solid var(--g); background: transparent; color: var(--g); font-family: inherit; font-weight: bold; transition: 0.3s; }
+        .btn:hover { background: var(--g); color: #000; }
+
+        /* Effects */
+        .c-h { color: var(--r); } .c-p { color: var(--b); } .c-y { color: var(--y); } .c-sys { color: #555; }
+        .alert-box { background: var(--r); color: #fff; padding: 5px; text-align: center; font-weight: bold; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
 <div id="scr-auth" class="overlay">
-    <div style="border: 1px solid var(--g); padding: 30px; box-shadow: 0 0 15px var(--g);">
-        <h2>CORE AUTHENTICATION</h2>
-        <input type="text" id="auth-user" placeholder="USERNAME" style="border: 1px solid #333; margin: 5px; padding: 10px;"><br>
-        <input type="password" id="auth-pass" placeholder="PASSWORD" style="border: 1px solid #333; margin: 5px; padding: 10px;"><br>
-        <button class="btn" style="border-color:var(--g)" onclick="authAction('reg')">REGISTER</button>
-        <button class="btn" style="border-color:var(--b)" onclick="authAction('login')">LOGIN</button>
-        <p id="auth-msg" style="font-size: 12px;"></p>
+    <div class="auth-box">
+        <h2 style="letter-spacing: 3px;">CYBER_WAR LOGIN</h2>
+        <input type="text" id="auth-user" placeholder="USERNAME" style="width:90%; padding:10px; margin:5px; background:#111; border:1px solid #333; color:white;"><br>
+        <input type="password" id="auth-pass" placeholder="PASSWORD (5-20)" style="width:90%; padding:10px; margin:5px; background:#111; border:1px solid #333; color:white;"><br>
+        <button class="btn" onclick="handleAuth('register')">REGISTER</button>
+        <button class="btn" style="border-color:var(--b); color:var(--b);" onclick="handleAuth('login')">LOGIN</button>
+        <p id="auth-msg" style="font-size: 11px; margin-top:10px;"></p>
     </div>
 </div>
 
 <div id="scr-role" class="overlay hidden">
-    <h2>CHOOSE SIDE</h2>
-    <button class="btn" style="border-color:var(--r); color:var(--r);" onclick="initRole('Hacker')">SYNDICATE (Hacker)</button>
-    <button class="btn" style="border-color:var(--b); color:var(--b);" onclick="initRole('Police')">ENFORCER (Police)</button>
+    <h2>IDENTIFY YOUR FACTION</h2>
+    <button class="btn" style="border-color:var(--r); color:var(--r);" onclick="chooseRole('Hacker')">HACKER (SYNDICATE)</button>
+    <button class="btn" style="border-color:var(--b); color:var(--b);" onclick="chooseRole('Police')">POLICE (ENFORCER)</button>
 </div>
 
 <div id="game-ui" class="hidden" style="display:contents;">
     <div class="header">
-        <span>LV:<b id="u-lvl">1</b></span>
-        <span>CASH:<b class="c-y">$<span id="u-cash">0</span></b></span>
-        <span>TEAM:<b id="u-team">None</b></span>
-        <span>IP:<b id="u-ip">-</b></span>
-        <span>EXPLOIT:<b class="c-p"><span id="u-exp-rate">10</span>%</b></span>
+        <span>USER: <b id="u-name">-</b></span>
+        <span>CASH: <b class="c-y">$<span id="u-cash">0</span></b></span>
+        <span>IP: <b id="u-ip">-</b></span>
+        <span>TEAM: <b id="u-team">NONE</b></span>
+        <span>BANK SEC: <b id="u-sec" class="c-p">0%</b></span>
     </div>
-
-    <div id="terminal"><div id="t-log"></div></div>
-
+    <div id="terminal">
+        <div id="alert-zone"></div>
+        <div id="t-log"></div>
+    </div>
     <div class="input-line">
         <span id="pfx">></span>
-        <input type="text" id="main-in" autocomplete="off" placeholder="Type 'help' for commands...">
+        <input type="text" id="main-in" autocomplete="off" placeholder="type 'help'...">
     </div>
-
-    <div class="m-grid" id="m-btns"></div>
 </div>
 
 <script>
-    let u = {
-        name: '', role: '', cash: 0, ip: '', lvl: 1, exp: 0,
-        team: null, exploitRate: 10, virus: null, items: [], 
-        isLogged: false, lastGlobalAttack: 0
+    // --- Firebase Setup ---
+    const firebaseConfig = { databaseURL: "https://discbbrord-b9757-default-rtdb.firebaseio.com/" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // --- Game State ---
+    let user = { 
+        name: '', role: '', cash: 0, ip: '', team: null, 
+        items: [], exploitRate: 15, stealth: false, virusLevel: 0 
     };
+    let globalBankSec = 0;
 
-    const DARK_SHOP = [
-        { id: 'v1', name: 'Virus Lv1', price: 3000, desc: 'ดักเงินอัตโนมัติทีละ $1' },
-        { id: 'v2', name: 'Virus Lv2', price: 10000, desc: 'ดักเงินธนาคารโบนัส x100' },
-        { id: 'v3', name: 'Virus Omega', price: 9000000000, desc: 'ดักเงินทุกคน 10% (คูลดาวน์ 2 เดือน)' },
-        { id: 'change_ip', name: 'New Identity', price: 5000, desc: 'สุ่มเปลี่ยน IP ใหม่' },
-        { id: 'hide_ip', name: 'Stealth Pack', price: 15000, desc: 'ซ่อน IP จากการ Trace 100%' },
-        { id: 'bribe', name: 'Police Bribe', price: 20000, desc: 'บัตรปิดปากตำรวจ (กันโดนจับ 1 ครั้ง)' },
-        { id: 'wipe', name: 'Data Wipe', price: 10000, desc: 'ล้างประวัติอาชญากรรมทั้งหมด' }
-    ];
+    // --- Auth Logic ---
+    async function handleAuth(type) {
+        const uName = document.getElementById('auth-user').value.trim();
+        const uPass = document.getElementById('auth-pass').value.trim();
+        const msg = document.getElementById('auth-msg');
 
-    function authAction(type) {
-        const user = document.getElementById('auth-user').value;
-        const pass = document.getElementById('auth-pass').value;
-        if(!user || !pass) return alert("กรุณากรอกข้อมูลให้ครบ");
-        
-        if(type === 'reg') {
-            localStorage.setItem(`user_${user}`, pass);
-            document.getElementById('auth-msg').innerText = "ลงทะเบียนสำเร็จ! กรุณา Login";
+        if (!uName || uPass.length < 5 || uPass.length > 20) {
+            return msg.innerText = "Error: รหัสต้อง 5-20 ตัวอักษร";
+        }
+
+        const userRef = db.ref('players/' + uName);
+        const snapshot = await userRef.once('value');
+
+        if (type === 'register') {
+            if (snapshot.exists()) return msg.innerText = "Error: ชื่อนี้ถูกใช้งานแล้ว";
+            await userRef.set({ password: uPass, cash: 5000, items: [], role: 'new', exploit: 15 });
+            msg.innerText = "สมัครสำเร็จ! กรุณากด Login";
         } else {
-            if(localStorage.getItem(`user_${user}`) === pass) {
-                u.name = user;
+            if (!snapshot.exists() || snapshot.val().password !== uPass) return msg.innerText = "Error: ข้อมูลไม่ถูกต้อง";
+            user.name = uName;
+            const data = snapshot.val();
+            user.cash = data.cash || 5000;
+            user.exploitRate = data.exploit || 15;
+            if (data.role === 'new') {
                 document.getElementById('scr-auth').classList.add('hidden');
                 document.getElementById('scr-role').classList.remove('hidden');
             } else {
-                document.getElementById('auth-msg').innerText = "Username หรือ Password ผิด!";
+                user.role = data.role;
+                startGame();
             }
         }
     }
 
-    function initRole(r) {
-        u.role = r;
-        u.ip = `${rand(255)}.${rand(255)}.${rand(255)}.${rand(255)}`;
-        u.cash = (r === 'Hacker') ? 5000 : 10000;
+    function chooseRole(r) {
+        user.role = r;
+        db.ref('players/' + user.name).update({ role: r });
         document.getElementById('scr-role').classList.add('hidden');
+        startGame();
+    }
+
+    function startGame() {
         document.getElementById('game-ui').classList.remove('hidden');
-        updateUI(); renderBtns();
-        log(`[SYSTEM] ยินดีต้อนรับคุณ ${u.name}. เข้าสู่ระบบรักษาความปลอดภัย v12.0`, 'c-y');
-    }
+        document.getElementById('scr-auth').classList.add('hidden');
+        user.ip = `${Math.floor(Math.random()*254)+1}.${Math.floor(Math.random()*254)+1}.1.1`;
+        updateUI();
+        log(`[CONNECTED] ยินดีต้อนรับ ${user.name} เข้าสู่ระบบเครือข่าย...`, 'c-y');
+        
+        // Listen to Bank Security
+        db.ref('global/bankSec').on('value', snap => {
+            globalBankSec = snap.val() || 0;
+            document.getElementById('u-sec').innerText = globalBankSec + "%";
+        });
 
-    function rand(n) { return Math.floor(Math.random() * n); }
-
-    function updateUI() {
-        document.getElementById('u-lvl').innerText = u.lvl;
-        document.getElementById('u-cash').innerText = u.cash;
-        document.getElementById('u-team').innerText = u.team || 'None';
-        document.getElementById('u-ip').innerText = u.ip;
-        document.getElementById('u-exp-rate').innerText = u.exploitRate;
-        document.getElementById('pfx').innerText = `${u.name}@${u.role.toLowerCase()}:~$ `;
-    }
-
-    function log(m, c='') {
-        const l = document.getElementById('t-log');
-        const d = document.createElement('div');
-        d.className = c;
-        d.innerHTML = `[${new Date().toLocaleTimeString()}] ${m}`;
-        l.appendChild(d);
-        document.getElementById('terminal').scrollTop = 99999;
-    }
-
-    function renderBtns() {
-        const g = document.getElementById('m-btns');
-        const b = ['help', 'missions', 'dark-shop', 'transfer', 'team-create', 'hack-central', 'upgrade-exploit', 'clear'];
-        g.innerHTML = b.map(x => `<div class="m-btn" onclick="exec('${x}')">${x.toUpperCase()}</div>`).join('');
-    }
-
-    function exec(raw) {
-        const a = raw.split(' ');
-        const c = a[0].toLowerCase();
-        if(c !== 'clear') log(`CMD: ${raw}`, 'c-sys');
-
-        switch(c) {
-            case 'help':
-                log("--- COMMANDS ---");
-                log("dark-shop / buy-dark [id] - ร้านค้ามืด");
-                log("transfer [IP] [AMT] - โอนเงิน");
-                log("team-create [name] / team-join [name] - ระบบทีม");
-                log("hack-central - แฮกธนาคารใหญ่ (ต้องมีทีม)");
-                log("upgrade-exploit - เพิ่มโอกาสแฮกสำเร็จ");
-                break;
-
-            case 'dark-shop':
-                log("--- ILLEGAL MARKET ---");
-                DARK_SHOP.forEach(i => log(`[${i.id}] ${i.name} - $${i.price} : ${i.desc}`, 'c-y'));
-                break;
-
-            case 'buy-dark':
-                let item = DARK_SHOP.find(i => i.id === a[1]);
-                if(item && u.cash >= item.price) {
-                    u.cash -= item.price;
-                    if(item.id === 'v1') u.virus = 'v1';
-                    if(item.id === 'v2') u.virus = 'v2';
-                    if(item.id === 'v3') {
-                        let now = Date.now();
-                        if(now - u.lastGlobalAttack < 5184000000) return log("ไวรัสโอเมก้ายังติดคูลดาวน์ 2 เดือน!", 'c-h');
-                        u.lastGlobalAttack = now;
-                        log("🔥 เปิดใช้งาน OMEGA VIRUS: ดักเงินทุกคน 10% สำเร็จ!", 'c-h');
-                        u.cash += 1000000; // สมมติว่าได้จากทุกคน
-                    }
-                    if(item.id === 'change_ip') u.ip = `${rand(255)}.${rand(255)}.${rand(255)}.${rand(255)}`;
-                    u.items.push(item.id);
-                    log(`ซื้อ ${item.name} สำเร็จ!`, 'c-g');
-                } else { log("เงินไม่พอหรือรหัสสินค้าผิด!", 'c-h'); }
-                updateUI(); break;
-
-            case 'transfer':
-                let targetIp = a[1];
-                let amt = parseInt(a[2]);
-                if(targetIp && amt > 0 && u.cash >= amt) {
-                    u.cash -= amt;
-                    log(`โอนเงิน $${amt} ไปยัง IP ${targetIp} สำเร็จ (ระบบกันโกง: บันทึก Log แล้ว)`, 'c-p');
-                } else { log("ข้อมูลการโอนไม่ถูกต้อง!"); }
-                updateUI(); break;
-
-            case 'team-create':
-                if(!a[1]) return log("กรุณาใส่ชื่อทีม");
-                u.team = a[1];
-                log(`สร้างทีม [${u.team}] สำเร็จ!`, 'c-g');
-                updateUI(); break;
-
-            case 'upgrade-exploit':
-                if(u.cash >= 5000) {
-                    u.cash -= 5000; u.exploitRate += 5;
-                    log("อัปเกรด Exploit สำเร็จ! โอกาสแฮกเพิ่มขึ้น 5%", 'c-g');
-                } else { log("เงินไม่พอ ($5000)"); }
-                updateUI(); break;
-
-            case 'hack-central':
-                if(!u.team) return log("ต้องมีทีมก่อนถึงจะแฮกธนาคารกลางได้!", 'c-h');
-                log("กำลังเจาะระบบธนาคารกลางกับทีม...");
-                setTimeout(() => {
-                    if(Math.random() * 100 < u.exploitRate) {
-                        let win = 50000 * u.lvl; u.cash += win;
-                        log(`💰 สำเร็จ! ทีมของคุณได้รับเงินรางวัล $${win}`, 'c-g');
-                    } else {
-                        log("การแฮกล้มเหลว! ระบบป้องกันตรวจพบทีมของคุณ", 'c-h');
-                        u.cash = Math.max(0, u.cash - 2000);
-                    }
-                    updateUI();
-                }, 3000);
-                break;
-
-            case 'clear': document.getElementById('t-log').innerHTML = ''; break;
-            default: log("ไม่พบคำสั่งนี้ พิมพ์ 'help' เพื่อดูรายการคำสั่ง");
+        // Listen to Hacker Alerts (For Police)
+        if(user.role === 'Police') {
+            db.ref('global/alerts').on('value', snap => {
+                const data = snap.val();
+                if(data && data.ip !== user.ip) {
+                    log(`🚨 [INTRUSION] ตรวจพบการแฮกจาก IP: ${data.ip}`, 'c-h');
+                }
+            });
         }
     }
 
-    // Passive Virus Earnings
-    setInterval(() => {
-        if(u.virus === 'v1') { u.cash += 1; updateUI(); }
-        if(u.virus === 'v2') { u.cash += 100; log("Virus v2: ดักเงินธนาคาร +$100", 'c-sys'); updateUI(); }
-    }, 5000);
+    function updateUI() {
+        document.getElementById('u-name').innerText = user.name;
+        document.getElementById('u-cash').innerText = user.cash;
+        document.getElementById('u-ip').innerText = user.ip;
+        document.getElementById('u-team').innerText = user.team || 'NONE';
+        document.getElementById('pfx').innerText = `${user.name}@${user.role.toLowerCase()}:~$ `;
+        db.ref('players/' + user.name).update({ cash: user.cash, exploit: user.exploitRate });
+    }
 
+    function log(m, c='') {
+        const out = document.getElementById('t-log');
+        const div = document.createElement('div');
+        div.className = c;
+        div.innerHTML = `[${new Date().toLocaleTimeString()}] ${m}`;
+        out.appendChild(div);
+        document.getElementById('terminal').scrollTop = 99999;
+    }
+
+    // --- Commands Logic ---
+    const COMMANDS = {
+        'help': () => {
+            log("--- ระบบคำสั่ง ---");
+            log("shop - เปิดร้านค้าอุปกรณ์");
+            log("transfer [IP] [AMT] - โอนเงินให้เพื่อน");
+            log("team-join [NAME] - เข้าร่วมทีม");
+            if(user.role === 'Hacker') {
+                log("hack-bank - เจาะธนาคารปกติ");
+                log("hack-central - เจาะธนาคารใหญ่ (ต้องใช้ทีม)");
+                log("upgrade-exploit - เพิ่มโอกาสแฮกสำเร็จ ($5000)");
+            } else {
+                log("bank-fortify - เพิ่มความปลอดภัยธนาคาร ($5000)");
+                log("trace - ค้นหา IP ผู้แฮกล่าสุด");
+            }
+        },
+        'shop': () => {
+            log("--- MARKET ---");
+            if(user.role === 'Hacker') {
+                log("[v1] Virus Lv1 ($3000) - ดักเงินทีละ $1", 'c-y');
+                log("[v2] Virus Lv2 ($10000) - ดักเงินธนาคารโบนัส x100", 'c-y');
+                log("[v3] OMEGA ($9B) - ดักเงินทุกคน 10% (คูลดาวน์ 2 เดือน)", 'c-y');
+                log("[stealth] Stealth Virus ($15000) - แฮกไม่ติด Alert", 'c-y');
+                log("[wipe] Data Wipe ($10000) - ล้างค่าหัวและประวัติ", 'c-y');
+            } else {
+                log("[monitor] IP Monitor ($7000) - ดัก IP โจรที่แฮกธนาคารอัตโนมัติ", 'c-p');
+                log("[firewall] Global Firewall ($20000) - ลดโอกาสโจรแฮกสำเร็จ 10%", 'c-p');
+            }
+        },
+        'buy': (id) => {
+            if(id === 'v1' && user.cash >= 3000) { user.cash -= 3000; user.virusLevel = 1; log("ติดตั้ง Virus Lv1"); }
+            else if(id === 'v2' && user.cash >= 10000) { user.cash -= 10000; user.virusLevel = 2; log("ติดตั้ง Virus Lv2"); }
+            else if(id === 'stealth' && user.cash >= 15000) { user.cash -= 15000; user.stealth = true; log("เปิดระบบ Stealth Mode"); }
+            else if(id === 'monitor' && user.role === 'Police' && user.cash >= 7000) { user.cash -= 7000; user.items.push('monitor'); log("ติดตั้ง IP Monitor"); }
+            else { log("เงินไม่พอหรือรหัสสินค้าผิด!"); }
+            updateUI();
+        },
+        'transfer': (targetIp, amount) => {
+            let amt = parseInt(amount);
+            if(!targetIp || isNaN(amt) || amt > user.cash) return log("การโอนล้มเหลว: ข้อมูลไม่ถูกต้อง");
+            user.cash -= amt;
+            log(`โอนเงิน $${amt} ไปยัง ${targetIp} เรียบร้อย (บันทึก Log กันโกง)`, 'c-p');
+            updateUI();
+        },
+        'team-join': (name) => {
+            if(!name) return log("กรุณาระบุชื่อทีม");
+            user.team = name;
+            log(`เข้าร่วมทีม [${name}] สำเร็จ!`, 'c-g');
+            updateUI();
+        },
+        'hack-bank': () => {
+            if(user.role !== 'Hacker') return log("สิทธิ์ไม่เพียงพอ");
+            log("กำลัง Bypass Firewall...");
+            setTimeout(() => {
+                let chance = user.exploitRate - (globalBankSec / 5);
+                if(Math.random() * 100 < chance) {
+                    let win = 2000 + Math.floor(Math.random()*3000);
+                    user.cash += win;
+                    log(`💰 SUCCESS: แฮกสำเร็จได้รับ $${win}`, 'c-g');
+                    if(!user.stealth) db.ref('global/alerts').set({ ip: user.ip, time: Date.now() });
+                } else {
+                    log("❌ FAILED: ระบบธนาคารป้องกันไว้ได้", 'c-h');
+                }
+                updateUI();
+            }, 3000);
+        },
+        'bank-fortify': () => {
+            if(user.role !== 'Police' || user.cash < 5000) return log("เงินไม่พอหรือสิทธิ์ไม่เพียงพอ");
+            user.cash -= 5000;
+            db.ref('global/bankSec').transaction(val => (val || 0) + 5);
+            log("เพิ่มความปลอดภัยธนาคารกลาง +5%", 'c-p');
+            updateUI();
+        },
+        'upgrade-exploit': () => {
+            if(user.cash < 5000) return log("เงินไม่พอ ($5000)");
+            user.cash -= 5000;
+            user.exploitRate += 3;
+            log(`อัปเกรดเครื่องมือเจาะระบบสำเร็จ! (Exploit: ${user.exploitRate}%)`, 'c-y');
+            updateUI();
+        }
+    };
+
+    // --- Event Listeners ---
     document.getElementById('main-in').addEventListener('keydown', e => {
-        if(e.key === 'Enter') { exec(e.target.value); e.target.value = ''; }
+        if(e.key === 'Enter') {
+            const val = e.target.value.trim();
+            const args = val.split(' ');
+            const cmd = args[0].toLowerCase();
+            if(COMMANDS[cmd]) COMMANDS[cmd](args[1], args[2]);
+            else if(cmd === 'clear') document.getElementById('t-log').innerHTML = '';
+            else log("ไม่พบคำสั่งนี้ พิมพ์ 'help'");
+            e.target.value = '';
+        }
     });
+
+    // --- Passive Virus Loop ---
+    setInterval(() => {
+        if(user.virusLevel === 1) { user.cash += 1; updateUI(); }
+        if(user.virusLevel === 2) { user.cash += 100; log("Virus v2 Passive: +$100", 'c-sys'); updateUI(); }
+    }, 5000);
 </script>
 </body>
 </html>
